@@ -34,8 +34,8 @@
                               Command="{Binding ResetModeClickCommand}">
 
                     </MenuItem>
-                    <MenuItem Header="_Impossible" 
-                              IsCheckable="True"  IsChecked="{Binding ImpossibleModeChecked}" 
+                    <MenuItem Header="_Hard" 
+                              IsCheckable="True"  IsChecked="{Binding HardModeChecked}" 
                               Command="{Binding ResetModeClickCommand}">
 
                     </MenuItem>

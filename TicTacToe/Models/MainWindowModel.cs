@@ -51,6 +51,21 @@ namespace TicTacToe.Models
             }
         }
 
+        public TileState ComputerMoveLetter
+        {
+            get
+            {
+                if (_moveCount % 2 == 0)
+                {
+                    return TileState.X;
+                }
+                else
+                {
+                    return TileState.O;
+                }
+            }
+        }
+
         public bool IsGameOver {
             get
             {
@@ -99,7 +114,8 @@ namespace TicTacToe.Models
             if (IsWinner(row, column) || IsDraw())
             {
                 _isGameOver = true;
-            } else
+            }
+            else
             {
                 MakeComputerMove();
             }
@@ -119,9 +135,9 @@ namespace TicTacToe.Models
 
                     MediumComputerMove();
                     break;
-                case "Impossible":
+                case "Hard":
 
-                    ImpossibleComputerMove();
+                    HardComputerMove();
                     break;
                 case "Play against a friend":
 
@@ -151,7 +167,8 @@ namespace TicTacToe.Models
             {
                 for (int j = 0; j < GridSize; j++)
                 {
-                    if (Grid[i, j] != TileState.Default || (_moveCount == 1 && i == 1 && j == 1))
+                    if (Grid[i, j] != TileState.Default ||
+                        (_moveCount == 1 && i == 1 && j == 1))
                     {
                         continue;
                     }
@@ -165,6 +182,11 @@ namespace TicTacToe.Models
                 }
             }
 
+            ComputerMove(row, column);
+        }
+
+        private void ComputerMove(int row, int column)
+        {
             _moveCount++;
             Grid[row, column] = MoveLetter;
 
@@ -176,12 +198,584 @@ namespace TicTacToe.Models
 
         private void MediumComputerMove()
         {
-            ;
+            if (AttemptThreeInARow() == true)
+            {
+                return;
+            }
+
+
+            if (BlockThreeInARow() == true)
+            {
+                //block
+                return;
+            }
+
+            EasyComputerMove();
         }
 
-        private void ImpossibleComputerMove()
+        private void HardComputerMove()
         {
-            ;
+            if (AttemptThreeInARow() == true) {
+                return;
+             }
+
+
+            if (BlockThreeInARow() == true) {
+                //block
+                return;
+            }
+
+            if (AttemptFork() == true)
+            {
+                //fork
+                return;
+            }
+
+            if (BlockFork() == true)
+            {
+                //block fork
+                return;
+            }
+
+            if (Grid[1, 1] == TileState.Default)
+            {
+                ComputerMove(1, 1);
+                return;
+            }
+            if (AttemptCornerMove() == true)
+            {
+                return;
+            }
+
+            EasyComputerMove();
+        }
+
+        private bool AttemptFork()
+        {
+            for (int i = 0; i < GridSize; i++)
+            {
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[i, j] == TileState.Default)
+                    {
+                        int NonBlockedLinesCount = 0;
+                        if (IsCandidateForkRow(i) == true)
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (IsCandidateForkColumn(j) == true)
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (InMainDiagonal(i, j) == true &&
+                            IsCandidateForkMainDiagonal())
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (InAntiDiagonal(i, j) == true &&
+                            IsCandidateForkAntiDiagonal())
+                        {
+                            NonBlockedLinesCount++;
+                        }
+
+                        if (NonBlockedLinesCount >= 2)
+                        {
+                            ComputerMove(i, j);
+                            return true;
+                        }
+
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool BlockFork()
+        {
+            int row = 0;
+            int column = 0;
+            int candidateTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[i, j] == TileState.Default)
+                    {
+                        int NonBlockedLinesCount = 0;
+                        if (IsCandidateBlockForkRow(i) == true)
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (IsCandidateBlockForkColumn(j) == true)
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (InMainDiagonal(i, j) == true &&
+                            IsCandidateBlockForkMainDiagonal())
+                        {
+                            NonBlockedLinesCount++;
+                        }
+                        if (InAntiDiagonal(i, j) == true &&
+                            IsCandidateBlockForkAntiDiagonal())
+                        {
+                            NonBlockedLinesCount++;
+                        }
+
+                        if (NonBlockedLinesCount >= 2)
+                        {
+                            row = i;
+                            column = j;
+                            candidateTileCount++;
+                        }
+
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool InMainDiagonal(int row, int column)
+        {
+            return row == column;
+        }
+
+        private bool InAntiDiagonal(int row, int column)
+        {
+            return row == GridSize - column - 1;
+        }
+
+        private bool IsCandidateForkRow(int row)
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[row, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[row, i] == MoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateBlockForkRow(int row)
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[row, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[row, i] == ComputerMoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateBlockForkColumn(int column)
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, column] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[i, column] == ComputerMoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateForkColumn(int column)
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, column] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[i, column] == MoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateForkAntiDiagonal()
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[GridSize - i - 1, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[GridSize - i - 1, i] == MoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateBlockForkAntiDiagonal()
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[GridSize - i - 1, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[GridSize - i - 1, i] == ComputerMoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateForkMainDiagonal()
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[i, i] == MoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool IsCandidateBlockForkMainDiagonal()
+        {
+            int blankCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, i] == TileState.Default)
+                {
+                    blankCount++;
+                    continue;
+                }
+
+                if (Grid[i, i] == ComputerMoveLetter)
+                {
+                    return false;
+                }
+
+            }
+
+            return blankCount == GridSize - 1;
+        }
+
+        private bool AttemptCornerMove()
+        {
+            // check opposite corners to opponent
+            if (Grid[0, 0] == MoveLetter &&
+                Grid[GridSize - 1, GridSize - 1] == TileState.Default)
+            {
+                ComputerMove(GridSize - 1, GridSize - 1);
+                return true;
+            }
+            if (Grid[GridSize - 1, 0] == MoveLetter &&
+                Grid[0, GridSize - 1] == TileState.Default)
+            {
+                ComputerMove(0, GridSize - 1);
+                return true;
+            }
+            if (Grid[0, GridSize - 1] == MoveLetter &&
+                Grid[GridSize - 1, 0] == TileState.Default)
+            {
+                ComputerMove(GridSize - 1, 0);
+                return true;
+            }
+            if (Grid[GridSize - 1, GridSize - 1] == MoveLetter &&
+                Grid[0, 0] == TileState.Default)
+            {
+                ComputerMove(0, 0);
+                return true;
+            }
+
+            //check free corners
+            if (Grid[0, 0] == TileState.Default)
+            {
+                ComputerMove(0, 0);
+                return true;
+            }
+            if (Grid[0, GridSize - 1] == TileState.Default)
+            {
+                ComputerMove(0, GridSize - 1);
+                return true;
+            }
+            if (Grid[GridSize - 1, 0] == TileState.Default)
+            {
+                ComputerMove(GridSize - 1, 0);
+                return true;
+            }
+            if (Grid[GridSize - 1, GridSize - 1] == TileState.Default)
+            {
+                ComputerMove(GridSize - 1, GridSize - 1);
+                return true;
+            }
+
+            return false;
+        }
+
+
+        private bool AttemptThreeInARow()
+        {
+            int computerMatchingTileCount = 0;
+            int blankTileCount = 0;
+            int blankTileRow = 0;
+            int blankTileColumn = 0;
+            //check rows
+            for (int i = 0; i < GridSize; i++)
+            {
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[i, j] == ComputerMoveLetter)
+                    {
+                        computerMatchingTileCount++;      
+                    }
+                    else if (Grid[i, j] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = i;
+                        blankTileColumn = j;
+                    }
+                }
+
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                {
+                    ComputerMove(blankTileRow, blankTileColumn);
+                    return true;
+                }
+
+            }
+
+            //check columns
+            for (int i = 0; i < GridSize; i++)
+            {
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[j, i] == ComputerMoveLetter)
+                    {
+                        computerMatchingTileCount++;
+                    }
+                    else if (Grid[j, i] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = j;
+                        blankTileColumn = i;
+                    }
+                }
+
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                {
+                    ComputerMove(blankTileRow, blankTileColumn);
+                    return true;
+                }
+
+            }
+
+
+            //check diagonals
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, i] == ComputerMoveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[i, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = i;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                ComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+            //check anti diagonal
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[GridSize - i - 1, i] == ComputerMoveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[GridSize - i - 1, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = GridSize - i - 1;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                ComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+            return false;
+        }
+
+        private bool BlockThreeInARow()
+        {
+            int computerMatchingTileCount = 0;
+            int blankTileCount = 0;
+            int blankTileRow = 0;
+            int blankTileColumn = 0;
+            //check rows
+            for (int i = 0; i < GridSize; i++)
+            {
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[i, j] == MoveLetter)
+                    {
+                        computerMatchingTileCount++;
+                    }
+                    else if (Grid[i, j] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = i;
+                        blankTileColumn = j;
+                    }
+                }
+
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                {
+                    ComputerMove(blankTileRow, blankTileColumn);
+                    return true;
+                }
+
+            }
+
+            //check columns
+            for (int i = 0; i < GridSize; i++)
+            {
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[j, i] == MoveLetter)
+                    {
+                        computerMatchingTileCount++;
+                    }
+                    else if (Grid[j, i] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = j;
+                        blankTileColumn = i;
+                    }
+                }
+
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                {
+                    ComputerMove(blankTileRow, blankTileColumn);
+                    return true;
+                }
+
+            }
+
+
+            //check diagonals
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, i] == MoveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[i, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = i;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                ComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+            //check anti diagonal
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[GridSize - i - 1, i] == MoveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[GridSize - i - 1, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = GridSize - i - 1;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                ComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+            return false;
         }
 
         public void ResetGrid()

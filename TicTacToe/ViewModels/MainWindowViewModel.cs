@@ -15,7 +15,7 @@ namespace TicTacToe.ViewModels
 
         private bool _easyModeChecked;
         private bool _mediumModeChecked;
-        private bool _impossibleModeChecked;
+        private bool _hardModeChecked;
         private bool _friendModeChecked = true;
 
         /* Click commands */
@@ -62,7 +62,7 @@ namespace TicTacToe.ViewModels
                 {
                     Mode = "Easy";
                     _easyModeChecked = true;
-                    ImpossibleModeChecked = false;
+                    HardModeChecked = false;
                     MediumModeChecked = false;
                     FriendModeChecked = false;
                 }
@@ -82,7 +82,7 @@ namespace TicTacToe.ViewModels
                     Mode = "Medium";
                     _mediumModeChecked = true;
                     EasyModeChecked = false;
-                    ImpossibleModeChecked = false;
+                    HardModeChecked = false;
                     FriendModeChecked = false;
                 }
                 else
@@ -92,22 +92,22 @@ namespace TicTacToe.ViewModels
             }
         }
 
-        public bool ImpossibleModeChecked
+        public bool HardModeChecked
         {
-            get { return _impossibleModeChecked; }
+            get { return _hardModeChecked; }
             set
             {
                 if (value == true)
                 {
-                    Mode = "Impossible";
-                    _impossibleModeChecked = true;
+                    Mode = "Hard";
+                    _hardModeChecked = true;
                     EasyModeChecked = false;
                     MediumModeChecked = false;
                     FriendModeChecked = false;
                 }
                 else
                 {
-                    _impossibleModeChecked = false;
+                    _hardModeChecked = false;
                 }
             }
         }
@@ -123,7 +123,7 @@ namespace TicTacToe.ViewModels
                     _friendModeChecked = true;
                     EasyModeChecked = false;
                     MediumModeChecked = false;
-                    ImpossibleModeChecked = false;
+                    HardModeChecked = false;
                 }
                 else
                 {
