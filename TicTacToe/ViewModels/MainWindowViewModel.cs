@@ -1,4 +1,5 @@
 ﻿using MvvmFoundation.Wpf;
+using System;
 using System.Collections.Generic;
 using System.Windows.Input;
 using TicTacToe.Models;
@@ -12,12 +13,22 @@ namespace TicTacToe.ViewModels
         /* Tic-tac-toe model */
         private MainWindowModel _ticTacToeModel = new MainWindowModel();
 
-        /* Click command */
+        private bool _easyModeChecked;
+        private bool _mediumModeChecked;
+        private bool _impossibleModeChecked;
+        private bool _friendModeChecked = true;
+
+        /* Click commands */
         private ICommand _tileClickCommand;
+        private ICommand _resetModeClickCommand;
+        private ICommand _exitClickCommand;
+
 
         #endregion
 
         #region Public Properties/Commands
+
+        public Action CloseAction { get; set; }
 
         /* Tile labels */
         public string Tile00Label { get; set; }
@@ -41,7 +52,110 @@ namespace TicTacToe.ViewModels
         public string Tile21Colour { get; set; } = "Yellow";
         public string Tile22Colour { get; set; } = "Yellow";
 
+        /* Mode checkboxes */
+        public bool EasyModeChecked
+        {
+            get { return _easyModeChecked; }
+            set
+            {
+                if (value == true)
+                {
+                    Mode = "Easy";
+                    _easyModeChecked = true;
+                    ImpossibleModeChecked = false;
+                    MediumModeChecked = false;
+                    FriendModeChecked = false;
+                }
+                else
+                {
+                    _easyModeChecked = false;
+                }
+            }
+        }
+        public bool MediumModeChecked
+        {
+            get { return _mediumModeChecked; }
+            set
+            {
+                if (value == true)
+                {
+                    Mode = "Medium";
+                    _mediumModeChecked = true;
+                    EasyModeChecked = false;
+                    ImpossibleModeChecked = false;
+                    FriendModeChecked = false;
+                }
+                else
+                {
+                    _mediumModeChecked = false;
+                }
+            }
+        }
+
+        public bool ImpossibleModeChecked
+        {
+            get { return _impossibleModeChecked; }
+            set
+            {
+                if (value == true)
+                {
+                    Mode = "Impossible";
+                    _impossibleModeChecked = true;
+                    EasyModeChecked = false;
+                    MediumModeChecked = false;
+                    FriendModeChecked = false;
+                }
+                else
+                {
+                    _impossibleModeChecked = false;
+                }
+            }
+        }
+
+        public bool FriendModeChecked
+        {
+            get { return _friendModeChecked; }
+            set
+            {
+                if (value == true)
+                {
+                    Mode = "Play against a friend";
+                    _friendModeChecked = true;
+                    EasyModeChecked = false;
+                    MediumModeChecked = false;
+                    ImpossibleModeChecked = false;
+                }
+                else
+                {
+                    _friendModeChecked = false;
+                }
+            }
+        }
+
+        /* Title */
+        public string Title
+        {
+            get
+            {
+                return "Tic-tac-toe: " + Mode;
+            }
+        }
+
         #region Tic-tac-toe model variables
+
+
+        public string Mode
+        {
+            get
+            {
+                return _ticTacToeModel.Mode;
+            }
+
+            set
+            {
+                _ticTacToeModel.Mode = value;
+            }
+        }
 
         public TileState[,] Grid
         {
@@ -97,9 +211,46 @@ namespace TicTacToe.ViewModels
 
         }
 
+        public ICommand ResetModeClickCommand
+        {
+            get
+            {
+                if (_resetModeClickCommand == null)
+                {
+                    _resetModeClickCommand = new RelayCommand(ResetModeClick);
+
+                }
+                return _resetModeClickCommand;
+            }
+
+        }
+
+        public ICommand ExitClickCommand
+        {
+            get
+            {
+                if (_exitClickCommand == null)
+                {
+                    _exitClickCommand = new RelayCommand(CloseAction);
+
+                }
+                return _exitClickCommand;
+            }
+
+        }
+
         #endregion
 
         #region Private Helpers
+
+        private void ResetModeClick()
+        {
+            _ticTacToeModel.ResetGrid();
+            updateTileText();
+            resetTileTextColour();
+        }
+
+
 
         /// <summary>
         /// Register move on tile.

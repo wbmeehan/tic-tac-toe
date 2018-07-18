@@ -34,6 +34,7 @@ namespace TicTacToe.Models
 
         #region Properties
 
+        public string Mode { get; set; } = "Play against a friend";
         public Queue<string> WinningTiles { get; set; } = new Queue<string>();
 
         public TileState MoveLetter
@@ -98,9 +99,89 @@ namespace TicTacToe.Models
             if (IsWinner(row, column) || IsDraw())
             {
                 _isGameOver = true;
+            } else
+            {
+                MakeComputerMove();
             }
 
             return true;
+        }
+
+        private void MakeComputerMove()
+        {
+            switch (Mode)
+            {
+                case "Easy":
+
+                    EasyComputerMove();
+                    break;
+                case "Medium":
+
+                    MediumComputerMove();
+                    break;
+                case "Impossible":
+
+                    ImpossibleComputerMove();
+                    break;
+                case "Play against a friend":
+
+                    break;
+                default:
+
+                    break;
+            }
+        }
+
+        private void EasyComputerMove()
+        {
+            Random rnd = new Random();
+            int positionID;
+            if (_moveCount == 1)
+            {
+                positionID = rnd.Next(1, GridSize * GridSize - _moveCount);
+            }
+            else
+            {
+                positionID = rnd.Next(1, GridSize * GridSize - _moveCount + 1);
+            }
+            int freeTileCount = 0;
+            int row = 0;
+            int column = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[i, j] != TileState.Default || (_moveCount == 1 && i == 1 && j == 1))
+                    {
+                        continue;
+                    }
+                    freeTileCount++;
+                    if (freeTileCount == positionID)
+                    {
+                        row = i;
+                        column = j;
+                    }
+
+                }
+            }
+
+            _moveCount++;
+            Grid[row, column] = MoveLetter;
+
+            if (IsWinner(row, column) || IsDraw())
+            {
+                _isGameOver = true;
+            }
+        }
+
+        private void MediumComputerMove()
+        {
+            ;
+        }
+
+        private void ImpossibleComputerMove()
+        {
+            ;
         }
 
         public void ResetGrid()

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using TicTacToe.ViewModels;
 
 namespace TicTacToe
@@ -11,7 +12,13 @@ namespace TicTacToe
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainWindowViewModel();
+            MainWindowViewModel mainWindowViewModel =
+                new MainWindowViewModel();
+            DataContext = mainWindowViewModel;
+            if (mainWindowViewModel.CloseAction == null)
+            {
+                mainWindowViewModel.CloseAction = new Action(Close);
+            }
         }
     }
 }
