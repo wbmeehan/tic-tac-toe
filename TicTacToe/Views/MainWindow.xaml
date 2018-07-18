@@ -5,8 +5,66 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TicTacToe"
         mc:Ignorable="d"
-        Title="Tic-tac-toe" Height="350" Width="525">
-    <Grid>
-        
-    </Grid>
+        Title="Tic-tac-toe" Height="600" Width="600">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Red" />
+            <Setter Property="FontSize" Value="140" />
+            <Setter Property="Foreground" Value="Yellow" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Command" Value="{Binding TileClickCommand}" />
+        </Style>
+    </Window.Resources>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" Background="White">
+            <MenuItem Header="_Game">
+                <MenuItem Header="_Restart">
+                    
+                </MenuItem>
+                <MenuItem Header="_Mode">
+                    <MenuItem Header="_Easy">
+
+                    </MenuItem>
+                    <MenuItem Header="_Medium">
+
+                    </MenuItem>
+                    <MenuItem Header="_Impossible">
+
+                    </MenuItem>
+                    <MenuItem Header="_Play against a friend">
+
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="Exit" >
+                    
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+        <Grid DockPanel.Dock="Bottom">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <!-- Tiles -->
+            <Button Grid.Row="0" Grid.Column="0" CommandParameter="00" Foreground="{Binding Tile00Colour, Mode=TwoWay }" Content="{Binding Tile00Label}"></Button>
+            <Button Grid.Row="0" Grid.Column="1" CommandParameter="01" Foreground="{Binding Tile01Colour}" Content="{Binding Tile01Label}"></Button>
+            <Button Grid.Row="0" Grid.Column="2" CommandParameter="02" Foreground="{Binding Tile02Colour}" Content="{Binding Tile02Label}"></Button>
+            <Button Grid.Row="1" Grid.Column="0" CommandParameter="10" Foreground="{Binding Tile10Colour}" Content="{Binding Tile10Label}"></Button>
+            <Button Grid.Row="1" Grid.Column="1" CommandParameter="11" Foreground="{Binding Tile11Colour}" Content="{Binding Tile11Label}"></Button>
+            <Button Grid.Row="1" Grid.Column="2" CommandParameter="12" Foreground="{Binding Tile12Colour}" Content="{Binding Tile12Label}"></Button>
+            <Button Grid.Row="2" Grid.Column="0" CommandParameter="20" Foreground="{Binding Tile20Colour}" Content="{Binding Tile20Label}"></Button>
+            <Button Grid.Row="2" Grid.Column="1" CommandParameter="21" Foreground="{Binding Tile21Colour}" Content="{Binding Tile21Label}"></Button>
+            <Button Grid.Row="2" Grid.Column="2" CommandParameter="22" Foreground="{Binding Tile22Colour}" Content="{Binding Tile22Label}"></Button>
+        </Grid>
+    </DockPanel>
+   
 </Window>
