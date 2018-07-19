@@ -1,61 +1,98 @@
-﻿using MvvmFoundation.Wpf;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Input;
+using MvvmFoundation.Wpf;
 using TicTacToe.Models;
 
 namespace TicTacToe.ViewModels
 {
-    class MainWindowViewModel : ObservableObject
+    /// <summary>
+    /// Tic-tac-toe view model.
+    /// </summary>
+    public class MainWindowViewModel : ObservableObject
     {
         #region Fields
 
         /* Tic-tac-toe model */
         private MainWindowModel _ticTacToeModel = new MainWindowModel();
 
-        private bool _easyModeChecked;
+        /* Mode checkbox states */
+        private bool _easyModeChecked = true;
         private bool _mediumModeChecked;
         private bool _hardModeChecked;
-        private bool _friendModeChecked = true;
+        private bool _friendModeChecked;
 
         /* Click commands */
         private ICommand _tileClickCommand;
         private ICommand _resetModeClickCommand;
         private ICommand _exitClickCommand;
 
-
         #endregion
 
         #region Public Properties/Commands
 
+        /* Close window action */
         public Action CloseAction { get; set; }
 
-        /* Tile labels */
-        public string Tile00Label { get; set; }
-        public string Tile01Label { get; set; }
-        public string Tile02Label { get; set; }
-        public string Tile10Label { get; set; }
-        public string Tile11Label { get; set; }
-        public string Tile12Label { get; set; }
-        public string Tile20Label { get; set; }
-        public string Tile21Label { get; set; }
-        public string Tile22Label { get; set; }
+        /* Title */
+        public string Title
+        {
+            get
+            {
+                return "Tic-tac-toe: " + Mode;
+            }
+        }
 
-        /* Tile label colours */
+        #region Tile labels
+        public string Tile00Label { get; set; }
+
+        public string Tile01Label { get; set; }
+
+        public string Tile02Label { get; set; }
+
+        public string Tile10Label { get; set; }
+
+        public string Tile11Label { get; set; }
+
+        public string Tile12Label { get; set; }
+
+        public string Tile20Label { get; set; }
+
+        public string Tile21Label { get; set; }
+
+        public string Tile22Label { get; set; }
+        #endregion
+
+        #region Tile label colours
+
         public string Tile00Colour { get; set; } = "Yellow";
+
         public string Tile01Colour { get; set; } = "Yellow";
+
         public string Tile02Colour { get; set; } = "Yellow";
+
         public string Tile10Colour { get; set; } = "Yellow";
+
         public string Tile11Colour { get; set; } = "Yellow";
+
         public string Tile12Colour { get; set; } = "Yellow";
+
         public string Tile20Colour { get; set; } = "Yellow";
+
         public string Tile21Colour { get; set; } = "Yellow";
+
         public string Tile22Colour { get; set; } = "Yellow";
 
-        /* Mode checkboxes */
+        #endregion
+
+        #region Mode checkboxes
         public bool EasyModeChecked
         {
-            get { return _easyModeChecked; }
+            get
+            {
+                return _easyModeChecked;
+            }
+
             set
             {
                 if (value == true)
@@ -72,9 +109,14 @@ namespace TicTacToe.ViewModels
                 }
             }
         }
+
         public bool MediumModeChecked
         {
-            get { return _mediumModeChecked; }
+            get
+            {
+                return _mediumModeChecked;
+            }
+
             set
             {
                 if (value == true)
@@ -91,10 +133,14 @@ namespace TicTacToe.ViewModels
                 }
             }
         }
-
+  
         public bool HardModeChecked
         {
-            get { return _hardModeChecked; }
+            get
+            {
+                return _hardModeChecked;
+            }
+
             set
             {
                 if (value == true)
@@ -114,7 +160,11 @@ namespace TicTacToe.ViewModels
 
         public bool FriendModeChecked
         {
-            get { return _friendModeChecked; }
+            get
+            {
+                return _friendModeChecked;
+            }
+
             set
             {
                 if (value == true)
@@ -132,17 +182,9 @@ namespace TicTacToe.ViewModels
             }
         }
 
-        /* Title */
-        public string Title
-        {
-            get
-            {
-                return "Tic-tac-toe: " + Mode;
-            }
-        }
+        #endregion
 
         #region Tic-tac-toe model variables
-
 
         public string Mode
         {
@@ -165,24 +207,11 @@ namespace TicTacToe.ViewModels
             }
         }
 
-        public TileState MoveLetter
-        {
-            get
-            {
-                return _ticTacToeModel.MoveLetter;
-            }
-        }
-
         public Queue<string> WinningTiles
         {
             get
             {
                 return _ticTacToeModel.WinningTiles;
-            }
-
-            set
-            {
-
             }
         }
 
@@ -194,8 +223,9 @@ namespace TicTacToe.ViewModels
             }
         }
 
-
         #endregion
+
+        #region Click commands
 
         public ICommand TileClickCommand
         {
@@ -241,60 +271,78 @@ namespace TicTacToe.ViewModels
 
         #endregion
 
+        #endregion
+
         #region Private Helpers
 
+        /// <summary>
+        /// Reset game state
+        /// </summary>
         private void ResetModeClick()
         {
             _ticTacToeModel.ResetGrid();
-            updateTileText();
-            resetTileTextColour();
+            UpdateTileText();
+            ResetTileTextColour();
         }
-
-
 
         /// <summary>
         /// Register move on tile.
         /// </summary>
+        /// <param name="tilePosition">Position of the move tile.</param>
         private void TileClick(string tilePosition)
         {
-
             if (IsGameOver)
             {
-                resetTileTextColour();
+                ResetTileTextColour();
             }
 
-            if (_ticTacToeModel.MakeMove(tilePosition) == false)
+            if (_ticTacToeModel.MakeHumanMove(tilePosition) == false)
             {
                 /* Invalid move */
                 return;
             }
 
-            updateTileText();
+            UpdateTileText();
 
             if (IsGameOver)
             {
                 while (WinningTiles.Count != 0)
                 {
-                    setTileTextColour(WinningTiles.Dequeue(), "LimeGreen");
+                    SetTileTextColour(WinningTiles.Dequeue(), "LimeGreen");
                 }
             } 
             
         }
 
-        private void updateTileText()
+        /// <summary>
+        /// Refresh tile labels.
+        /// </summary>
+        private void UpdateTileText()
         {
-            Tile00Label = (Grid[0, 0] != TileState.Default) ? Grid[0, 0].ToString() : "";
-            Tile01Label = (Grid[0, 1] != TileState.Default) ? Grid[0, 1].ToString() : "";
-            Tile02Label = (Grid[0, 2] != TileState.Default) ? Grid[0, 2].ToString() : "";
-            Tile10Label = (Grid[1, 0] != TileState.Default) ? Grid[1, 0].ToString() : "";
-            Tile11Label = (Grid[1, 1] != TileState.Default) ? Grid[1, 1].ToString() : "";
-            Tile12Label = (Grid[1, 2] != TileState.Default) ? Grid[1, 2].ToString() : "";
-            Tile20Label = (Grid[2, 0] != TileState.Default) ? Grid[2, 0].ToString() : "";
-            Tile21Label = (Grid[2, 1] != TileState.Default) ? Grid[2, 1].ToString() : "";
-            Tile22Label = (Grid[2, 2] != TileState.Default) ? Grid[2, 2].ToString() : "";
+            Tile00Label = (Grid[0, 0] != TileState.Default) ?
+                Grid[0, 0].ToString() : string.Empty;
+            Tile01Label = (Grid[0, 1] != TileState.Default) ?
+                Grid[0, 1].ToString() : string.Empty;
+            Tile02Label = (Grid[0, 2] != TileState.Default) ?
+                Grid[0, 2].ToString() : string.Empty;
+            Tile10Label = (Grid[1, 0] != TileState.Default) ?
+                Grid[1, 0].ToString() : string.Empty;
+            Tile11Label = (Grid[1, 1] != TileState.Default) ?
+                Grid[1, 1].ToString() : string.Empty;
+            Tile12Label = (Grid[1, 2] != TileState.Default) ?
+                Grid[1, 2].ToString() : string.Empty;
+            Tile20Label = (Grid[2, 0] != TileState.Default) ?
+                Grid[2, 0].ToString() : string.Empty;
+            Tile21Label = (Grid[2, 1] != TileState.Default) ?
+                Grid[2, 1].ToString() : string.Empty;
+            Tile22Label = (Grid[2, 2] != TileState.Default) ?
+                Grid[2, 2].ToString() : string.Empty;
         }
 
-        private void resetTileTextColour()
+        /// <summary>
+        /// Refresh all tile label colours.
+        /// </summary>
+        private void ResetTileTextColour()
         {
             Tile00Colour = "Yellow";
             Tile01Colour = "Yellow";
@@ -307,7 +355,12 @@ namespace TicTacToe.ViewModels
             Tile22Colour = "Yellow";
         }
 
-        private void setTileTextColour(string tilePosition, string tileColour)
+        /// <summary>
+        /// Set the colour of a tile's text.
+        /// </summary>
+        /// <param name="tilePosition">Position of the specified tile.</param>
+        /// <param name="tileColour">Colour to set the specified tile to.</param>
+        private void SetTileTextColour(string tilePosition, string tileColour)
         {
             switch (tilePosition)
             {

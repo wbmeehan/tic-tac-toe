@@ -5,7 +5,7 @@ using TicTacToe.ViewModels;
 namespace TicTacToe
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Tic-tac-toe view.
     /// </summary>
     public partial class MainWindow : Window
     {

@@ -1,56 +1,88 @@
-﻿using MvvmFoundation.Wpf;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using MvvmFoundation.Wpf;
 
 namespace TicTacToe.Models
 {
     /// <summary>
-    /// Tile states
+    /// Tile states.
     /// </summary>
-    public enum TileState { Default, X, O };
-    class MainWindowModel : ObservableObject
+    public enum TileState
+    {
+        /// <summary>
+        /// Default (empty) tile.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// X tile.
+        /// </summary>
+        X,
+
+        /// <summary>
+        /// O tile.
+        /// </summary>
+        O
+    }
+
+    /// <summary>
+    /// Tic-tac-toe model.
+    /// </summary>
+    public class MainWindowModel : ObservableObject
     {
         #region Fields
 
         /// <summary>
-        /// Game grid dimensions
+        /// Game grid dimensions.
         /// </summary>
         private const int GridSize = 3;
 
+        /* Move types */
+        private const bool Blocking = true;
+        private const bool NonBlocking = false;
+
         /// <summary>
-        /// Game grid
+        /// Game grid.
         /// </summary>
         private TileState[,] _grid = new TileState[GridSize, GridSize];
 
         /// <summary>
-        /// Move count
+        /// Move count.
         /// </summary>
         private int _moveCount;
 
+        /// <summary>
+        /// Is the game over?
+        /// </summary>
         private bool _isGameOver;
-
 
         #endregion
 
         #region Properties
 
-        public string Mode { get; set; } = "Play against a friend";
+        /* Current game mode */
+        public string Mode { get; set; } = "Easy";
+        
+        /* Queue of winning tiles */
         public Queue<string> WinningTiles { get; set; } = new Queue<string>();
 
-        public TileState MoveLetter
+        /* Human player's letter (X or O?) */
+        public TileState HumanMoveLetter
         {
             get
             {
                 if (_moveCount % 2 == 0)
                 {
                     return TileState.O;
-                } else
+                }
+                else
                 {
                     return TileState.X;
                 }
             }
         }
 
+        /* Computer player's letter (X or O?) */
         public TileState ComputerMoveLetter
         {
             get
@@ -66,16 +98,16 @@ namespace TicTacToe.Models
             }
         }
 
-        public bool IsGameOver {
+        /* Is the game over? */
+        public bool IsGameOver
+        {
             get
             {
                 return _isGameOver;
             }
         }
 
-        /// <summary>
-        /// Game grid dimensions
-        /// </summary>
+        /* Game grid dimensions */
         public TileState[,] Grid
         {
             get
@@ -91,9 +123,24 @@ namespace TicTacToe.Models
 
         #endregion
 
-        public bool MakeMove(string tilePosition)
+        /// <summary>
+        /// Reset the game grid.
+        /// </summary>
+        public void ResetGrid()
         {
+            _moveCount = 0;
+            Array.Clear(Grid, 0, Grid.Length);
+            _isGameOver = false;
+        }
 
+        /// <summary>
+        /// Make a human move at a specified position.
+        /// If playing a computer generate its move in response.
+        /// </summary>
+        /// <param name="tilePosition">Specified move tile position.</param>
+        /// <returns>Was the move made?</returns>
+        public bool MakeHumanMove(string tilePosition)
+        {
             int row = tilePosition[0] - '0';
             int column = tilePosition[1] - '0';
 
@@ -109,7 +156,7 @@ namespace TicTacToe.Models
             }
 
             _moveCount++;
-            Grid[row, column] = MoveLetter;
+            Grid[row, column] = HumanMoveLetter;
 
             if (IsWinner(row, column) || IsDraw())
             {
@@ -117,13 +164,16 @@ namespace TicTacToe.Models
             }
             else
             {
-                MakeComputerMove();
+                GenerateComputerMove();
             }
 
             return true;
         }
 
-        private void MakeComputerMove()
+        /// <summary>
+        /// Generate a computer move.
+        /// </summary>
+        private void GenerateComputerMove()
         {
             switch (Mode)
             {
@@ -148,18 +198,41 @@ namespace TicTacToe.Models
             }
         }
 
+        /// <summary>
+        /// Make a computer move at the generated position.
+        /// </summary>
+        /// <param name="row">Move row.</param>
+        /// <param name="column">Move column.</param>
+        private void MakeComputerMove(int row, int column)
+        {
+            _moveCount++;
+            Grid[row, column] = HumanMoveLetter;
+
+            if (IsWinner(row, column) || IsDraw())
+            {
+                _isGameOver = true;
+            }
+        }
+
+        /// <summary>
+        /// Generate an easy mode computer move.
+        /// </summary>
         private void EasyComputerMove()
         {
+            /* Generate a random tile position */
             Random rnd = new Random();
             int positionID;
             if (_moveCount == 1)
             {
-                positionID = rnd.Next(1, GridSize * GridSize - _moveCount);
+                positionID = rnd.Next(1, (GridSize * GridSize) - _moveCount);
             }
             else
             {
-                positionID = rnd.Next(1, GridSize * GridSize - _moveCount + 1);
+                positionID = rnd.Next(1,
+                    (GridSize * GridSize) - _moveCount + 1);
             }
+
+            /* Find the tile at the generated tile position */
             int freeTileCount = 0;
             int row = 0;
             int column = 0;
@@ -182,105 +255,126 @@ namespace TicTacToe.Models
                 }
             }
 
-            ComputerMove(row, column);
+            /* Make computer move at the random tile */
+            MakeComputerMove(row, column);
         }
 
-        private void ComputerMove(int row, int column)
-        {
-            _moveCount++;
-            Grid[row, column] = MoveLetter;
-
-            if (IsWinner(row, column) || IsDraw())
-            {
-                _isGameOver = true;
-            }
-        }
-
+        /// <summary>
+        /// Generate a medium level computer move.
+        /// </summary>
         private void MediumComputerMove()
         {
-            if (AttemptThreeInARow() == true)
+            /* Make three in a row (if possible)*/
+            if (ThreeInARow(NonBlocking) == true)
             {
+                /* Made three in a row */
                 return;
             }
 
-
-            if (BlockThreeInARow() == true)
+            /* Block three in a row (if possible) */
+            if (ThreeInARow(Blocking) == true)
             {
-                //block
+                /* Three in a row blocked */
                 return;
             }
 
+            /* Otherwise make random move */
             EasyComputerMove();
         }
 
+        /// <summary>
+        /// Generate a hard level computer move.
+        /// </summary>
         private void HardComputerMove()
         {
-            if (AttemptThreeInARow() == true) {
+            /* Make three in a row (if possible)*/
+            if (ThreeInARow(NonBlocking) == true)
+            {
+                /* Three in a row accomplished */
                 return;
              }
 
-
-            if (BlockThreeInARow() == true) {
-                //block
-                return;
-            }
-
-            if (AttemptFork() == true)
+            /* Block three in a row (if possible)*/
+            if (ThreeInARow(Blocking) == true)
             {
-                //fork
+                /* Three in a row blocked */
                 return;
             }
 
-            if (BlockFork() == true)
+            /* Make forking move (if possible) */
+            if (Fork(NonBlocking) == true)
             {
-                //block fork
+                /* Fork move made */
                 return;
             }
 
+            /* Block forking move (if possible) */
+            if (Fork(Blocking) == true)
+            {
+                /* Fork blocked */
+                return;
+            }
+
+            /* Is centre move possible? */
             if (Grid[1, 1] == TileState.Default)
             {
-                ComputerMove(1, 1);
+                /* Make centre move */
+                MakeComputerMove(1, 1);
                 return;
             }
+
+            /* Make corner move (if possible) */
             if (AttemptCornerMove() == true)
             {
+                /* Made corner move */
                 return;
             }
 
             EasyComputerMove();
         }
 
-        private bool AttemptFork()
+        /// <summary>
+        /// Attempt a fork or fork blocking move (if possible).
+        /// </summary>
+        /// <param name="isBlocking">Is it a blocking move?</param>
+        /// <returns>Was a move made?</returns>
+        private bool Fork(bool isBlocking)
         {
+            /* Loop through each tile */
             for (int i = 0; i < GridSize; i++)
             {
                 for (int j = 0; j < GridSize; j++)
                 {
+                    /* Check if the tile is empty (can fork/block) */
                     if (Grid[i, j] == TileState.Default)
                     {
-                        int NonBlockedLinesCount = 0;
-                        if (IsCandidateForkRow(i) == true)
+                        /* Count how many possible three in a row
+                         *  lines exist with this tile in them */
+                        int nonBlockedLinesCount = 0;
+                        if (IsCandidateRow(i, isBlocking) == true)
                         {
-                            NonBlockedLinesCount++;
+                            nonBlockedLinesCount++;
                         }
-                        if (IsCandidateForkColumn(j) == true)
+                        if (IsCandidateColumn(j, isBlocking) == true)
                         {
-                            NonBlockedLinesCount++;
+                            nonBlockedLinesCount++;
                         }
                         if (InMainDiagonal(i, j) == true &&
-                            IsCandidateForkMainDiagonal())
+                            IsCandidateMainDiagonal(isBlocking))
                         {
-                            NonBlockedLinesCount++;
+                            nonBlockedLinesCount++;
                         }
                         if (InAntiDiagonal(i, j) == true &&
-                            IsCandidateForkAntiDiagonal())
+                            IsCandidateAntiDiagonal(isBlocking))
                         {
-                            NonBlockedLinesCount++;
+                            nonBlockedLinesCount++;
                         }
 
-                        if (NonBlockedLinesCount >= 2)
+                        /* If there are at least 2 lines it is a potential
+                         *  forking tile */
+                        if (nonBlockedLinesCount >= 2)
                         {
-                            ComputerMove(i, j);
+                            MakeComputerMove(i, j);
                             return true;
                         }
 
@@ -290,62 +384,47 @@ namespace TicTacToe.Models
             return false;
         }
 
-        private bool BlockFork()
-        {
-            int row = 0;
-            int column = 0;
-            int candidateTileCount = 0;
-            for (int i = 0; i < GridSize; i++)
-            {
-                for (int j = 0; j < GridSize; j++)
-                {
-                    if (Grid[i, j] == TileState.Default)
-                    {
-                        int NonBlockedLinesCount = 0;
-                        if (IsCandidateBlockForkRow(i) == true)
-                        {
-                            NonBlockedLinesCount++;
-                        }
-                        if (IsCandidateBlockForkColumn(j) == true)
-                        {
-                            NonBlockedLinesCount++;
-                        }
-                        if (InMainDiagonal(i, j) == true &&
-                            IsCandidateBlockForkMainDiagonal())
-                        {
-                            NonBlockedLinesCount++;
-                        }
-                        if (InAntiDiagonal(i, j) == true &&
-                            IsCandidateBlockForkAntiDiagonal())
-                        {
-                            NonBlockedLinesCount++;
-                        }
-
-                        if (NonBlockedLinesCount >= 2)
-                        {
-                            row = i;
-                            column = j;
-                            candidateTileCount++;
-                        }
-
-                    }
-                }
-            }
-            return false;
-        }
-
+        /// <summary>
+        /// Does a specified tile lie on the main diagonal?
+        /// </summary>
+        /// <param name="row">Specified row.</param>
+        /// <param name="column">Specified column.</param>
+        /// <returns>Whether or not tile lies on main diagonal.</returns>
         private bool InMainDiagonal(int row, int column)
         {
             return row == column;
         }
 
+        /// <summary>
+        /// Determine whether or not a tile lies on the anti diagonal.
+        /// </summary>
+        /// <param name="row">Specified row.</param>
+        /// <param name="column">Specified column.</param>
+        /// <returns>Does tile lie on the anti diagonal?</returns>
         private bool InAntiDiagonal(int row, int column)
         {
             return row == GridSize - column - 1;
         }
 
-        private bool IsCandidateForkRow(int row)
+        /// <summary>
+        /// Determine if the specified row is a candidate for making/blocking
+        /// a fork move.
+        /// </summary>
+        /// <param name="row">Row of game grid.</param>
+        /// <param name="isBlockingMove">Is it a blocking move?</param>
+        /// <returns>Is the specified row a candidate for making/blocking a
+        /// fork move?</returns>
+        private bool IsCandidateRow(int row, bool isBlockingMove)
         {
+            TileState moveLetter;
+            if (isBlockingMove)
+            {
+                moveLetter = ComputerMoveLetter;
+            }
+            else
+            {
+                moveLetter = HumanMoveLetter;
+            }
             int blankCount = 0;
             for (int i = 0; i < GridSize; i++)
             {
@@ -355,7 +434,7 @@ namespace TicTacToe.Models
                     continue;
                 }
 
-                if (Grid[row, i] == MoveLetter)
+                if (Grid[row, i] == moveLetter)
                 {
                     return false;
                 }
@@ -365,29 +444,25 @@ namespace TicTacToe.Models
             return blankCount == GridSize - 1;
         }
 
-        private bool IsCandidateBlockForkRow(int row)
+        /// <summary>
+        /// Determine if a specified column is a candidate for making/blocking
+        /// a fork move.
+        /// </summary>
+        /// <param name="column">Column of game grid.</param>
+        /// <param name="isBlockingMove">Is it a blocking move?</param>
+        /// <returns>Is the specified column a candidate for making/blocking a
+        /// fork move?</returns>
+        private bool IsCandidateColumn(int column, bool isBlockingMove)
         {
-            int blankCount = 0;
-            for (int i = 0; i < GridSize; i++)
+            TileState moveLetter;
+            if (isBlockingMove)
             {
-                if (Grid[row, i] == TileState.Default)
-                {
-                    blankCount++;
-                    continue;
-                }
-
-                if (Grid[row, i] == ComputerMoveLetter)
-                {
-                    return false;
-                }
-
+                moveLetter = ComputerMoveLetter;
             }
-
-            return blankCount == GridSize - 1;
-        }
-
-        private bool IsCandidateBlockForkColumn(int column)
-        {
+            else
+            {
+                moveLetter = HumanMoveLetter;
+            }
             int blankCount = 0;
             for (int i = 0; i < GridSize; i++)
             {
@@ -397,7 +472,7 @@ namespace TicTacToe.Models
                     continue;
                 }
 
-                if (Grid[i, column] == ComputerMoveLetter)
+                if (Grid[i, column] == moveLetter)
                 {
                     return false;
                 }
@@ -407,29 +482,23 @@ namespace TicTacToe.Models
             return blankCount == GridSize - 1;
         }
 
-        private bool IsCandidateForkColumn(int column)
+        /// <summary>
+        /// Is the antidiagonal a candidate for making/blocking a fork move?
+        /// </summary>
+        /// <param name="isBlockingMove">Is it a blocking move?</param>
+        /// <returns>Is the antidiagonal a candidate for
+        /// making/blocking a fork?</returns>
+        private bool IsCandidateAntiDiagonal(bool isBlockingMove)
         {
-            int blankCount = 0;
-            for (int i = 0; i < GridSize; i++)
+            TileState moveLetter;
+            if (isBlockingMove)
             {
-                if (Grid[i, column] == TileState.Default)
-                {
-                    blankCount++;
-                    continue;
-                }
-
-                if (Grid[i, column] == MoveLetter)
-                {
-                    return false;
-                }
-
+                moveLetter = ComputerMoveLetter;
             }
-
-            return blankCount == GridSize - 1;
-        }
-
-        private bool IsCandidateForkAntiDiagonal()
-        {
+            else
+            {
+                moveLetter = HumanMoveLetter;
+            }
             int blankCount = 0;
             for (int i = 0; i < GridSize; i++)
             {
@@ -439,7 +508,7 @@ namespace TicTacToe.Models
                     continue;
                 }
 
-                if (Grid[GridSize - i - 1, i] == MoveLetter)
+                if (Grid[GridSize - i - 1, i] == moveLetter)
                 {
                     return false;
                 }
@@ -449,29 +518,24 @@ namespace TicTacToe.Models
             return blankCount == GridSize - 1;
         }
 
-        private bool IsCandidateBlockForkAntiDiagonal()
+        /// <summary>
+        /// Determine if the main diagonal is a candidate for making/blocking
+        /// a fork move.
+        /// </summary>
+        /// <param name="isBlockingMove">Is it a blocking move?</param>
+        /// <returns>Is the main diagonal a candidate for making/blocking a
+        /// fork move?</returns>
+        private bool IsCandidateMainDiagonal(bool isBlockingMove)
         {
-            int blankCount = 0;
-            for (int i = 0; i < GridSize; i++)
+            TileState moveLetter;
+            if (isBlockingMove)
             {
-                if (Grid[GridSize - i - 1, i] == TileState.Default)
-                {
-                    blankCount++;
-                    continue;
-                }
-
-                if (Grid[GridSize - i - 1, i] == ComputerMoveLetter)
-                {
-                    return false;
-                }
-
+                moveLetter = ComputerMoveLetter;
             }
-
-            return blankCount == GridSize - 1;
-        }
-
-        private bool IsCandidateForkMainDiagonal()
-        {
+            else
+            {
+                moveLetter = HumanMoveLetter;
+            }
             int blankCount = 0;
             for (int i = 0; i < GridSize; i++)
             {
@@ -481,7 +545,7 @@ namespace TicTacToe.Models
                     continue;
                 }
 
-                if (Grid[i, i] == MoveLetter)
+                if (Grid[i, i] == moveLetter)
                 {
                     return false;
                 }
@@ -491,308 +555,283 @@ namespace TicTacToe.Models
             return blankCount == GridSize - 1;
         }
 
-        private bool IsCandidateBlockForkMainDiagonal()
+        /// <summary>
+        /// Attempt a move either to block the opponent from getting
+        /// three in a row or to get three in a row.
+        /// </summary>
+        /// <param name="isBlockingMove">Is it a blocking move?</param>
+        /// <returns>Was a move made?</returns>
+        private bool ThreeInARow(bool isBlockingMove)
         {
-            int blankCount = 0;
+            TileState moveLetter;
+            if (isBlockingMove)
+            {
+                moveLetter = HumanMoveLetter;
+            }
+            else
+            {
+                moveLetter = ComputerMoveLetter;
+            }
+            int computerMatchingTileCount = 0;
+            int blankTileCount = 0;
+            int blankTileRow = 0;
+            int blankTileColumn = 0;
+            
+            /* Check rows */
             for (int i = 0; i < GridSize; i++)
             {
-                if (Grid[i, i] == TileState.Default)
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
                 {
-                    blankCount++;
-                    continue;
+                    if (Grid[i, j] == moveLetter)
+                    {
+                        computerMatchingTileCount++;
+                    }
+                    else if (Grid[i, j] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = i;
+                        blankTileColumn = j;
+                    }
                 }
 
-                if (Grid[i, i] == ComputerMoveLetter)
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
                 {
-                    return false;
+                    MakeComputerMove(blankTileRow, blankTileColumn);
+                    return true;
                 }
 
             }
 
-            return blankCount == GridSize - 1;
+            /* Check columns */
+            for (int i = 0; i < GridSize; i++)
+            {
+                computerMatchingTileCount = 0;
+                blankTileCount = 0;
+                for (int j = 0; j < GridSize; j++)
+                {
+                    if (Grid[j, i] == moveLetter)
+                    {
+                        computerMatchingTileCount++;
+                    }
+                    else if (Grid[j, i] == TileState.Default)
+                    {
+                        blankTileCount++;
+                        blankTileRow = j;
+                        blankTileColumn = i;
+                    }
+                }
+
+                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                {
+                    MakeComputerMove(blankTileRow, blankTileColumn);
+                    return true;
+                }
+
+            }
+
+            /* Check diagonal */
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[i, i] == moveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[i, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = i;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                MakeComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+           
+            /* Check anti diagonal */
+            computerMatchingTileCount = 0;
+            blankTileCount = 0;
+            for (int i = 0; i < GridSize; i++)
+            {
+                if (Grid[GridSize - i - 1, i] == moveLetter)
+                {
+                    computerMatchingTileCount++;
+                }
+                else if (Grid[GridSize - i - 1, i] == TileState.Default)
+                {
+                    blankTileCount++;
+                    blankTileRow = GridSize - i - 1;
+                    blankTileColumn = i;
+                }
+            }
+            if (computerMatchingTileCount == 2 && blankTileCount == 1)
+            {
+                MakeComputerMove(blankTileRow, blankTileColumn);
+                return true;
+            }
+            return false;
         }
 
+        /// <summary>
+        /// Attempt a move in a corner. 
+        /// </summary>
+        /// <returns>Was move generated?</returns>
         private bool AttemptCornerMove()
         {
             // check opposite corners to opponent
-            if (Grid[0, 0] == MoveLetter &&
+            if (Grid[0, 0] == HumanMoveLetter &&
                 Grid[GridSize - 1, GridSize - 1] == TileState.Default)
             {
-                ComputerMove(GridSize - 1, GridSize - 1);
+                MakeComputerMove(GridSize - 1, GridSize - 1);
                 return true;
             }
-            if (Grid[GridSize - 1, 0] == MoveLetter &&
+            if (Grid[GridSize - 1, 0] == HumanMoveLetter &&
                 Grid[0, GridSize - 1] == TileState.Default)
             {
-                ComputerMove(0, GridSize - 1);
+                MakeComputerMove(0, GridSize - 1);
                 return true;
             }
-            if (Grid[0, GridSize - 1] == MoveLetter &&
+            if (Grid[0, GridSize - 1] == HumanMoveLetter &&
                 Grid[GridSize - 1, 0] == TileState.Default)
             {
-                ComputerMove(GridSize - 1, 0);
+                MakeComputerMove(GridSize - 1, 0);
                 return true;
             }
-            if (Grid[GridSize - 1, GridSize - 1] == MoveLetter &&
+            if (Grid[GridSize - 1, GridSize - 1] == HumanMoveLetter &&
                 Grid[0, 0] == TileState.Default)
             {
-                ComputerMove(0, 0);
+                MakeComputerMove(0, 0);
                 return true;
             }
 
-            //check free corners
+            /* Check free corners */
             if (Grid[0, 0] == TileState.Default)
             {
-                ComputerMove(0, 0);
+                MakeComputerMove(0, 0);
                 return true;
             }
             if (Grid[0, GridSize - 1] == TileState.Default)
             {
-                ComputerMove(0, GridSize - 1);
+                MakeComputerMove(0, GridSize - 1);
                 return true;
             }
             if (Grid[GridSize - 1, 0] == TileState.Default)
             {
-                ComputerMove(GridSize - 1, 0);
+                MakeComputerMove(GridSize - 1, 0);
                 return true;
             }
             if (Grid[GridSize - 1, GridSize - 1] == TileState.Default)
             {
-                ComputerMove(GridSize - 1, GridSize - 1);
+                MakeComputerMove(GridSize - 1, GridSize - 1);
                 return true;
             }
 
             return false;
         }
 
-
-        private bool AttemptThreeInARow()
+        /// <summary>
+        /// Does the specified column have three in a row?
+        /// </summary>
+        /// <param name="column">Column of game grid.</param>
+        /// <returns>Is there a column with three in a row?</returns>
+        private bool IsColumnWin(int column)
         {
-            int computerMatchingTileCount = 0;
-            int blankTileCount = 0;
-            int blankTileRow = 0;
-            int blankTileColumn = 0;
-            //check rows
             for (int i = 0; i < GridSize; i++)
             {
-                computerMatchingTileCount = 0;
-                blankTileCount = 0;
-                for (int j = 0; j < GridSize; j++)
+                if (_grid[i, column] != HumanMoveLetter)
                 {
-                    if (Grid[i, j] == ComputerMoveLetter)
-                    {
-                        computerMatchingTileCount++;      
-                    }
-                    else if (Grid[i, j] == TileState.Default)
-                    {
-                        blankTileCount++;
-                        blankTileRow = i;
-                        blankTileColumn = j;
-                    }
+                    break;
                 }
-
-                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                if (i == GridSize - 1)
                 {
-                    ComputerMove(blankTileRow, blankTileColumn);
                     return true;
                 }
-
             }
 
-            //check columns
+            return false;
+        }
+
+        /// <summary>
+        /// Does the specified row have three in a row?
+        /// </summary>
+        /// <param name="row">Row of game grid.</param>
+        /// <returns>Is there a row with three in a row?</returns>
+        private bool IsRowWin(int row)
+        {
             for (int i = 0; i < GridSize; i++)
             {
-                computerMatchingTileCount = 0;
-                blankTileCount = 0;
-                for (int j = 0; j < GridSize; j++)
+                if (_grid[row, i] != HumanMoveLetter)
                 {
-                    if (Grid[j, i] == ComputerMoveLetter)
-                    {
-                        computerMatchingTileCount++;
-                    }
-                    else if (Grid[j, i] == TileState.Default)
-                    {
-                        blankTileCount++;
-                        blankTileRow = j;
-                        blankTileColumn = i;
-                    }
+                    break;
                 }
-
-                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                if (i == GridSize - 1)
                 {
-                    ComputerMove(blankTileRow, blankTileColumn);
                     return true;
                 }
-
             }
 
+            return false;
+        }
 
-            //check diagonals
-            computerMatchingTileCount = 0;
-            blankTileCount = 0;
+        /// <summary>
+        /// Determine if there are three in a row on the main diagonal.
+        /// </summary>
+        /// <returns>Are there three in a row on the main diagonal?</returns>
+        private bool IsMainDiagonalWin()
+        {
             for (int i = 0; i < GridSize; i++)
             {
-                if (Grid[i, i] == ComputerMoveLetter)
+                if (Grid[i, i] != HumanMoveLetter)
                 {
-                    computerMatchingTileCount++;
+                    break;
                 }
-                else if (Grid[i, i] == TileState.Default)
+                if (i == GridSize - 1)
                 {
-                    blankTileCount++;
-                    blankTileRow = i;
-                    blankTileColumn = i;
+                    return true;
                 }
-            }
-            if (computerMatchingTileCount == 2 && blankTileCount == 1)
-            {
-                ComputerMove(blankTileRow, blankTileColumn);
-                return true;
-            }
-            //check anti diagonal
-            computerMatchingTileCount = 0;
-            blankTileCount = 0;
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (Grid[GridSize - i - 1, i] == ComputerMoveLetter)
-                {
-                    computerMatchingTileCount++;
-                }
-                else if (Grid[GridSize - i - 1, i] == TileState.Default)
-                {
-                    blankTileCount++;
-                    blankTileRow = GridSize - i - 1;
-                    blankTileColumn = i;
-                }
-            }
-            if (computerMatchingTileCount == 2 && blankTileCount == 1)
-            {
-                ComputerMove(blankTileRow, blankTileColumn);
-                return true;
             }
             return false;
         }
 
-        private bool BlockThreeInARow()
+        /// <summary>
+        /// Determines if there are three in a row on the anti diagonal.
+        /// </summary>
+        /// <returns>Are there three in a row on the anti diagonal?</returns>
+        private bool IsAntiDiagonalWin()
         {
-            int computerMatchingTileCount = 0;
-            int blankTileCount = 0;
-            int blankTileRow = 0;
-            int blankTileColumn = 0;
-            //check rows
             for (int i = 0; i < GridSize; i++)
             {
-                computerMatchingTileCount = 0;
-                blankTileCount = 0;
-                for (int j = 0; j < GridSize; j++)
+                if (Grid[GridSize - 1 - i, i] != HumanMoveLetter)
                 {
-                    if (Grid[i, j] == MoveLetter)
-                    {
-                        computerMatchingTileCount++;
-                    }
-                    else if (Grid[i, j] == TileState.Default)
-                    {
-                        blankTileCount++;
-                        blankTileRow = i;
-                        blankTileColumn = j;
-                    }
+                    break;
                 }
-
-                if (computerMatchingTileCount == 2 && blankTileCount == 1)
+                if (i == GridSize - 1)
                 {
-                    ComputerMove(blankTileRow, blankTileColumn);
                     return true;
                 }
-
-            }
-
-            //check columns
-            for (int i = 0; i < GridSize; i++)
-            {
-                computerMatchingTileCount = 0;
-                blankTileCount = 0;
-                for (int j = 0; j < GridSize; j++)
-                {
-                    if (Grid[j, i] == MoveLetter)
-                    {
-                        computerMatchingTileCount++;
-                    }
-                    else if (Grid[j, i] == TileState.Default)
-                    {
-                        blankTileCount++;
-                        blankTileRow = j;
-                        blankTileColumn = i;
-                    }
-                }
-
-                if (computerMatchingTileCount == 2 && blankTileCount == 1)
-                {
-                    ComputerMove(blankTileRow, blankTileColumn);
-                    return true;
-                }
-
-            }
-
-
-            //check diagonals
-            computerMatchingTileCount = 0;
-            blankTileCount = 0;
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (Grid[i, i] == MoveLetter)
-                {
-                    computerMatchingTileCount++;
-                }
-                else if (Grid[i, i] == TileState.Default)
-                {
-                    blankTileCount++;
-                    blankTileRow = i;
-                    blankTileColumn = i;
-                }
-            }
-            if (computerMatchingTileCount == 2 && blankTileCount == 1)
-            {
-                ComputerMove(blankTileRow, blankTileColumn);
-                return true;
-            }
-            //check anti diagonal
-            computerMatchingTileCount = 0;
-            blankTileCount = 0;
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (Grid[GridSize - i - 1, i] == MoveLetter)
-                {
-                    computerMatchingTileCount++;
-                }
-                else if (Grid[GridSize - i - 1, i] == TileState.Default)
-                {
-                    blankTileCount++;
-                    blankTileRow = GridSize - i - 1;
-                    blankTileColumn = i;
-                }
-            }
-            if (computerMatchingTileCount == 2 && blankTileCount == 1)
-            {
-                ComputerMove(blankTileRow, blankTileColumn);
-                return true;
             }
             return false;
         }
 
-        public void ResetGrid()
-        {
-            _moveCount = 0;
-            Array.Clear(Grid, 0, Grid.Length);
-            _isGameOver = false;
-        }
-
+        /// <summary>
+        /// Determines if there is a winner.
+        /// If there is a winner, adds winning tiles to a queue.
+        /// </summary>
+        /// <param name="row">Game grid row.</param>
+        /// <param name="column">Game grid column.</param>
+        /// <returns>Is there a winner?</returns>
         private bool IsWinner(int row, int column)
         {
-            
             if (IsColumnWin(column))
             {
                 for (int i = 0; i < GridSize; i++)
                 {
-                    WinningTiles.Enqueue(String.Format("{0}{1}", i, column));
+                    WinningTiles.Enqueue(string.Format("{0}{1}", i, column));
                 }
                 return true;
             }
@@ -801,7 +840,7 @@ namespace TicTacToe.Models
             {
                 for (int i = 0; i < GridSize; i++)
                 {
-                    WinningTiles.Enqueue(String.Format("{0}{1}", row, i));
+                    WinningTiles.Enqueue(string.Format("{0}{1}", row, i));
                 }
                 return true;
             }
@@ -810,7 +849,7 @@ namespace TicTacToe.Models
             {
                 for (int i = 0; i < GridSize; i++)
                 {
-                    WinningTiles.Enqueue(String.Format("{0}{1}", i, i));
+                    WinningTiles.Enqueue(string.Format("{0}{1}", i, i));
                 }
                 return true;
             }
@@ -820,7 +859,8 @@ namespace TicTacToe.Models
             {
                 for (int i = 0; i < GridSize; i++)
                 {
-                    WinningTiles.Enqueue(String.Format("{0}{1}", i,
+                    WinningTiles.Enqueue(string.Format("{0}{1}", 
+                        i,
                         GridSize - 1 - i));
                 }
                 return true;
@@ -829,70 +869,10 @@ namespace TicTacToe.Models
             return false;
         }
 
-        private bool IsColumnWin(int column)
-        {
-            for (int i = 0; i < GridSize; i++) {
-                if (_grid[i, column] != MoveLetter)
-                {
-                    break;
-                }
-                if (i == GridSize - 1)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool IsRowWin(int row)
-        {
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (_grid[row, i] != MoveLetter)
-                {
-                    break;
-                }
-                if (i == GridSize - 1)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool IsMainDiagonalWin()
-        {
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (Grid[i, i] != MoveLetter)
-                {
-                    break;
-                }
-                if (i == GridSize - 1)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool IsAntiDiagonalWin()
-        {
-            for (int i = 0; i < GridSize; i++)
-            {
-                if (Grid[GridSize - 1 - i, i] != MoveLetter)
-                {
-                    break;
-                }
-                if (i == GridSize - 1)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        /// <summary>
+        /// Determines if there is a draw.
+        /// </summary>
+        /// <returns>Is there a draw?</returns>
         private bool IsDraw()
         {
             return _moveCount == Math.Pow(GridSize, 2);
